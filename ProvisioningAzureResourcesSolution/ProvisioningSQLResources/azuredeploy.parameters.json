@@ -1,0 +1,18 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "sqlserverAdminLogin": { "value": "iomegaadmin" },
+    "sqlserverAdminLoginPassword": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/7471d1ba-aeaa-4b26-9468-53e243603c7b/resourceGroups/iomegaresourcegroup/providers/Microsoft.KeyVault/vaults/iomegakv"
+        },
+        "secretName": "sqladminpassword"
+      }
+    },
+    "sqlserverName": { "value": "iomegasqlserverv2" },
+    "sqldatabaseName": { "value": "iomegasqldatabase" },
+    "sqldatabaseRequestedServiceObjectiveName": { "value": "Basic" }
+  }
+}
