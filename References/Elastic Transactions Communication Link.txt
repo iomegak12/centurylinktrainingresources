@@ -1,0 +1,2 @@
+New-AzureRmSqlServerCommunicationLink -LinkName iomegalink -PartnerServer iomegasqlserverv1 -Ser
+verName iomegasqlserverv3 -ResourceGroupName iomegaresourcegroup -Verbose

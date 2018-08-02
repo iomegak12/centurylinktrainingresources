@@ -1,0 +1,82 @@
+# PowerShell script to retrieve Azure SQL Database Automatic tuning recommendations.
+#
+# Provided “as-is” with no implied warranties or support.
+# The script is released to the public domain.
+#
+# Replace <SUBSCRIPTION_ID_WITH_DATABASES> in the header with your Azure subscription ID.
+#
+# Microsoft Azure SQL Database team, 2018-01-22.
+
+# Set subscriptions : IMPORTANT – REPLACE <SUBSCRIPTION_ID_WITH_DATABASES> WITH YOUR SUBSCRIPTION ID 
+$subscriptions = ("<SUBSCRIPTION_ID_WITH_DATABASES>", "<SECOND_SUBSCRIPTION_ID_WITH_DATABASES>", "<THIRD_SUBSCRIPTION_ID_WITH_DATABASES>")
+
+# Get credentials
+$Conn = Get-AutomationConnection -Name AzureRunAsConnection
+Connect-AzureRmAccount -ServicePrincipal -Tenant $Conn.TenantID -ApplicationId $Conn.ApplicationID -CertificateThumbprint $Conn.CertificateThumbprint
+
+# Define the resource types
+$resourceTypes = ("Microsoft.Sql/servers/databases")
+$advisors = ("CreateIndex", "DropIndex");
+$results = @()
+
+# Loop through all subscriptions
+foreach($subscriptionId in $subscriptions) {    
+    Select-AzureRmSubscription -SubscriptionId $subscriptionId    
+    $rgs = Get-AzureRmResourceGroup
+
+    # Loop through all resource groups
+    foreach($rg in $rgs) {
+        $rgname = $rg.ResourceGroupName;
+
+        # Loop through all resource types
+        foreach($resourceType in $resourceTypes) {
+            $resources = Get-AzureRmResource -ResourceGroupName $rgname -ResourceType $resourceType    
+
+            # Loop through all databases
+            # Extract resource groups, servers and databases
+            foreach ($resource in $resources) {
+                $resourceId = $resource.ResourceId
+                if ($resourceId -match ".*RESOURCEGROUPS/(?<content>.*)/PROVIDERS.*") {
+                    $ResourceGroupName = $matches['content']
+                } else {
+                    continue
+                }
+                if ($resourceId -match ".*SERVERS/(?<content>.*)/DATABASES.*") {
+                    $ServerName = $matches['content']
+                } else {
+                    continue
+                }
+                if ($resourceId -match ".*/DATABASES/(?<content>.*)") {
+                    $DatabaseName = $matches['content']
+                } else {
+                    continue 
+                }
+
+                # Skip if master
+                if ($DatabaseName -eq "master") {
+                    continue
+                }
+
+                # Loop through all Automatic tuning recommendation types
+                foreach ($advisor in $advisors) {
+                    $recs = Get-AzureRmSqlDatabaseRecommendedAction -ResourceGroupName $ResourceGroupName -ServerName $ServerName  -DatabaseName $DatabaseName -AdvisorName $advisor
+                    foreach ($r in $recs) {
+                        if ($r.State.CurrentValue -eq "Active") {
+                            $object = New-Object -TypeName PSObject
+                            $object | Add-Member -Name 'SubscriptionId' -MemberType Noteproperty -Value $subscriptionId
+                            $object | Add-Member -Name 'ResourceGroupName' -MemberType Noteproperty -Value $r.ResourceGroupName
+                            $object | Add-Member -Name 'ServerName' -MemberType Noteproperty -Value $r.ServerName
+                            $object | Add-Member -Name 'DatabaseName' -MemberType Noteproperty -Value $r.DatabaseName
+                            $object | Add-Member -Name 'Script' -MemberType Noteproperty -Value $r.ImplementationDetails.Script
+                            $results += $object
+                        }
+                    }
+                }                
+            }
+        }
+    }
+}
+
+# Format and output results for the email
+$table = $results | Format-List
+Write-Output $table

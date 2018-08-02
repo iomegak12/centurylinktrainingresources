@@ -1,0 +1,50 @@
+
+CREATE MASTER KEY ENCRYPTION BY PASSWORD='<EnterStrongPasswordHere>';
+
+CREATE DATABASE SCOPED CREDENTIAL myjobcred WITH IDENTITY = 'jobcred',
+SECRET = '<EnterStrongPasswordHere>';
+GO
+
+CREATE DATABASE SCOPED CREDENTIAL mymastercred WITH IDENTITY = 'mastercred',
+SECRET = '<EnterStrongPasswordHere>';
+GO
+
+EXEC jobs.sp_add_target_group 'ServerGroup1'
+
+EXEC jobs.sp_add_target_group_member
+'ServerGroup1',
+@target_type = 'SqlServer',
+@refresh_credential_name='mymastercred', --credential required to refresh the databases in server
+@server_name='server1.database.windows.net'
+
+SELECT * FROM jobs.target_groups WHERE target_group_name='ServerGroup1';
+SELECT * FROM jobs.target_group_members WHERE target_group_name='ServerGroup1';
+
+EXEC jobs.sp_add_job @job_name='CreateTableTest', @description='Create Table Test'
+
+EXEC jobs.sp_add_jobstep @job_name='CreateTableTest',
+@command=N'IF NOT EXISTS (SELECT * FROM sys.tables
+WHERE object_id = object_id(''Test''))
+CREATE TABLE [dbo].[Test]([TestId] [int] NOT NULL);',
+@credential_name='myjobcred',
+@target_group_name='ServerGroup1'
+
+SELECT * FROM jobs.jobs
+select * from jobs.jobsteps
+
+EXEC jobs.sp_start_job 'CreateTableTest'
+
+SELECT * FROM jobs.job_executions
+WHERE job_name = 'ResultsPoolsJob' and step_id IS NULL
+ORDER BY start_time DESC
+
+SELECT * FROM jobs.job_executions WHERE step_id IS NULL
+ORDER BY start_time DESC
+
+SELECT * FROM jobs.job_executions
+WHERE job_name = 'CreateTableTest'
+ORDER BY start_time DESC
+
+SELECT * FROM jobs.job_executions
+WHERE is_active = 1
+ORDER BY start_time DESC

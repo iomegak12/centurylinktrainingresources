@@ -1,0 +1,2 @@
+($resource = Get-AzureRmResource -ResourceId (Get-AzureRmKeyVault -VaultName 'PS-KeyVault').ResourceId).Properties | Add-Member -MemberType "NoteProperty" -Name "enableSoftDelete" -Value "true"
+Set-AzureRmResource -resourceid $resource.ResourceId -Properties $resource.Properties

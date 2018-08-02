@@ -1,0 +1,3 @@
+select CustomerName, PhoneNumber, FaxNumber
+from Sales.Customers
+FOR JSON PATH

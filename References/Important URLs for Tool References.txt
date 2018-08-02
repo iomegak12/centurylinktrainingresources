@@ -1,0 +1,8 @@
+Migration Assistant:
+https://www.microsoft.com/en-us/download/details.aspx?id=53595
+
+SQL Query Stress:
+https://github.com/ErikEJ/SqlQueryStress
+
+RML Utilities
+https://www.microsoft.com/en-us/download/details.aspx?id=4511

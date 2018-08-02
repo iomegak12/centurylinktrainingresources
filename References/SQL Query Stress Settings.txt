@@ -1,0 +1,5 @@
+select * from azurePartitionTest order by recordDate asc
+
+4 Iterations
+
+50 Threads
